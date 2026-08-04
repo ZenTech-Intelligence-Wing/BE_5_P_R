@@ -1,27 +1,19 @@
 import base64
 from datetime import datetime
-import hashlib
-from io import BytesIO
 import json
 import os
-from pathlib import Path
-import sys
 import time
 import urllib.parse
 
-import cv2
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from google.genai import types
-import numpy as np
-from PIL import Image
 from pydantic import BaseModel
 import requests
 import uvicorn
 
 # ================= SECURE ENVIRONMENT VARIABLES =================
-# We read the keys ONLY from Render. Hardcoded keys will get revoked!
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -43,54 +35,13 @@ AI_ENGINES_POOL = [
     }
 ]
 
-WATERMARK_LOGO_PATH = "watermark.jpeg"
-
-
-def add_visible_watermark_pil(img):
-    img = img.convert("RGBA")
-
-    if not os.path.exists(WATERMARK_LOGO_PATH):
-        print(f"[ZIMAGE ERROR] Watermark file NOT found at exact path: {WATERMARK_LOGO_PATH}")
-        return img.convert("RGB")
-
-    logo = Image.open(WATERMARK_LOGO_PATH).convert("RGBA")
-
-    datas = logo.getdata()
-    newData = []
-    for item in datas:
-        if item[0] > 220 and item[1] > 220 and item[2] > 220:
-            newData.append((255, 255, 255, 0))
-        else:
-            newData.append(item)
-    logo.putdata(newData)
-
-    target_w = max(80, int(img.width * 0.12))
-    ratio = target_w / logo.width
-    logo = logo.resize((target_w, int(logo.height * ratio)))
-
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    pos = (img.width - logo.width - 20, img.height - logo.height - 20)
-    layer.paste(logo, pos, logo)
-
-    return Image.alpha_composite(img, layer).convert("RGB")
-
-
-def generate_watermarked_image_bytes(image_bytes):
-    img = Image.open(BytesIO(image_bytes)).convert("RGB")
-    img = add_visible_watermark_pil(img)
-    out = BytesIO()
-    img.save(out, format="JPEG", quality=95)
-    return out.getvalue()
-
-
 class ZenTechBackendEngine:
     def __init__(self, gemini_api_key: str):
         self.gemini_api_key = gemini_api_key
         self.system_instruction = (
             "You are 5onam AI, an advanced AI assistant operating on the Zen-Tech"
-            " platform, managed under T-Service HQ (T-Service est. June 1, 2021;"
-            " Zen-Tech est. March 13, 2023). You have a professional, helpful, and"
-            " friendly persona. Always provide accurate and supportive answers."
+            " platform, managed under T-Service HQ. You have a professional,"
+            " helpful, and friendly persona. Always provide accurate answers."
         )
 
         self.safety_settings = [
@@ -113,44 +64,18 @@ class ZenTechBackendEngine:
             print(f"[ERROR] Baseline startup exception: {e}")
 
     def generate_image(self, prompt: str) -> str:
+        # 1. Format the Prompt
         safe_prompt = f"{prompt}, no human faces, no avatars, highly detailed, 4k"
         encoded_prompt = urllib.parse.quote(safe_prompt)
         seed = int(time.time())
 
-        # Primary API
+        # 2. Generate the direct URL
         url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true"
         
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "image/jpeg, image/png, image/*"
-        }
-
-        try:
-            print("[ZIMAGE] Requesting image from Pollinations server-side...")
-            response = requests.get(url, headers=headers, timeout=45)
-
-            # Check if Pollinations blocked us with a Cloudflare HTML page
-            content_type = response.headers.get("Content-Type", "")
-            if "image" not in content_type:
-                print(f"[ZIMAGE ERROR] Blocked by Pollinations. Content-Type received: {content_type}")
-                return f"**[IMAGE ERROR]** Pollinations API blocked Render's IP address. Received HTML instead of an image."
-
-            if response.status_code == 200:
-                try:
-                    print("[ZIMAGE] Applying visible logo watermark...")
-                    watermarked_bytes = generate_watermarked_image_bytes(response.content)
-                    img_base64 = base64.b64encode(watermarked_bytes).decode("utf-8")
-                    print("[ZIMAGE] Visible watermark embedded successfully.")
-                except Exception as watermark_err:
-                    print(f"[ZIMAGE WARN] Watermark failed: {watermark_err}. Sending original response.")
-                    img_base64 = base64.b64encode(response.content).decode("utf-8")
-
-                return f"![Zimage Generated](data:image/jpeg;base64,{img_base64})"
-            else:
-                return f"**[IMAGE ERROR]** Pollinations returned HTTP {response.status_code}."
-
-        except Exception as e:
-            return f"**[IMAGE ERROR]** Connection failed. Details: {str(e)}"
+        # 3. DIRECT BROWSER BYPASS: 
+        # Instead of the Render server downloading it (and getting blocked), 
+        # we return the URL instantly to the frontend!
+        return f"![Zimage Generated]({url})"
 
     def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
         if not user_input.strip():
