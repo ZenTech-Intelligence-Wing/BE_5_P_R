@@ -66,17 +66,18 @@ class ZenTechBackendEngine:
             print(f"[ERROR] Baseline startup exception: {e}")
 
     def generate_image(self, prompt: str) -> str:
-        # 1. Format & encode prompt
+       # 1. Format & encode prompt
         safe_prompt = f"{prompt}, no human faces, no avatars, highly detailed, 4k"
         encoded_prompt = urllib.parse.quote(safe_prompt)
         seed = int(time.time())
 
-        # 2. Build the active gen.pollinations.ai URL
-        url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true"
+        # 2. Add your Pollinations API Key back in!
+        POLLINATIONS_API_KEY = "sk_G8nhKDsZ44Hu3GqsEwJvD2u8HdytEAL0"
         
-        # 3. DIRECT BROWSER BYPASS:
-        # Pass the URL directly back so the user's browser loads it.
-        # This completely bypasses Cloudflare bot protection on Render!
+        # 3. Build the authenticated URL
+        url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true&key={POLLINATIONS_API_KEY}"
+        
+        # 4. DIRECT BROWSER BYPASS
         return f"![Zimage Generated]({url})"
 
     def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
