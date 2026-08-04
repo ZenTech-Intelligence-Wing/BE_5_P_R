@@ -72,7 +72,7 @@ class ZenTechBackendEngine:
         seed = int(time.time())
 
         # 2. Add your Pollinations API Key back in!
-        POLLINATIONS_API_KEY = "sk_G8nhKDsZ44Hu3GqsEwJvD2u8HdytEAL0"
+        POLLINATIONS_API_KEY = "sk_pBaN97kRGsEnkb9mGsk3Hu8oiAIjosAj"
         
         # 3. Build the authenticated URL
         url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true&key={POLLINATIONS_API_KEY}"
