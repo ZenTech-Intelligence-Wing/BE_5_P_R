@@ -14,6 +14,7 @@ import requests
 import uvicorn
 
 # ================= SECURE ENVIRONMENT VARIABLES =================
+# Keys are pulled securely from Render's Environment Variables
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -35,6 +36,7 @@ AI_ENGINES_POOL = [
     }
 ]
 
+
 class ZenTechBackendEngine:
     def __init__(self, gemini_api_key: str):
         self.gemini_api_key = gemini_api_key
@@ -52,7 +54,7 @@ class ZenTechBackendEngine:
         ]
         
         if not self.gemini_api_key:
-            print("[WARN] Baseline Gemini API key missing. Ensure it is set in Render!")
+            print("[WARN] Baseline Gemini API key missing. Ensure GEMINI_API_KEY is set in Render!")
             return
 
         try:
@@ -64,17 +66,17 @@ class ZenTechBackendEngine:
             print(f"[ERROR] Baseline startup exception: {e}")
 
     def generate_image(self, prompt: str) -> str:
-        # 1. Format the Prompt
+        # 1. Format & encode prompt
         safe_prompt = f"{prompt}, no human faces, no avatars, highly detailed, 4k"
         encoded_prompt = urllib.parse.quote(safe_prompt)
         seed = int(time.time())
 
-        # 2. Generate the direct URL
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true"
+        # 2. Build the active gen.pollinations.ai URL
+        url = f"https://gen.pollinations.ai/image/{encoded_prompt}?width=1024&height=1024&seed={seed}&nologo=true"
         
-        # 3. DIRECT BROWSER BYPASS: 
-        # Instead of the Render server downloading it (and getting blocked), 
-        # we return the URL instantly to the frontend!
+        # 3. DIRECT BROWSER BYPASS:
+        # Pass the URL directly back so the user's browser loads it.
+        # This completely bypasses Cloudflare bot protection on Render!
         return f"![Zimage Generated]({url})"
 
     def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
@@ -115,6 +117,10 @@ class ZenTechBackendEngine:
         except Exception as e:
             return f"[Connection Error]: Failed to query {selected_engine['name']}. Details: {str(e)}"
 
+
+# ==========================================
+# FASTAPI WEB SERVER SETUP
+# ==========================================
 
 app = FastAPI(title="ZenTech Backend API")
 
