@@ -20,20 +20,30 @@ from pydantic import BaseModel
 import requests
 import uvicorn
 
+# ================= SECURE ENVIRONMENT VARIABLES =================
+# Keys are pulled securely from Render; NEVER hardcoded.
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
+OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "")
+SILICONFLOW_KEY = os.environ.get("SILICONFLOW_API_KEY", "")
 
-def b64_decode(encoded_str: str) -> str:
-    try:
-        return base64.b64decode(encoded_str.encode("utf-8")).decode("utf-8")
-    except Exception:
-        return encoded_str
-
-
+# ================= AI ENGINES: ZERO-DOWNTIME CONFIGURATION =================
 AI_ENGINES_POOL = [
     {
-        "name": "Gemini 2.5 Flash",
+        "name": "NVIDIA Nemotron 70B",
+        "provider": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "model": "nvidia/llama-3.1-nemotron-70b-instruct",
+        "apiKey": NVIDIA_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Gemini 1.5 Flash",
         "provider": "google",
-        "model": "gemini-2.5-flash",
-        "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"),
+        "model": "gemini-1.5-flash",
+        "apiKey": GEMINI_KEY,
         "supportsVision": True,
     },
     {
@@ -41,13 +51,303 @@ AI_ENGINES_POOL = [
         "provider": "groq",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "model": "llama-3.3-70b-versatile",
-        "apiKey": "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",
+        "apiKey": GROQ_KEY,
         "supportsVision": False,
-    }
+    },
+    {
+        "name": "Gemini 1.5 Pro",
+        "provider": "google",
+        "model": "gemini-1.5-pro",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 3.1 Pro",
+        "provider": "google",
+        "model": "gemini-3.1-pro-preview",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 3 Flash",
+        "provider": "google",
+        "model": "gemini-3-flash-preview",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 3.1 Flash-Lite",
+        "provider": "google",
+        "model": "gemini-3.1-flash-lite-preview",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Nano Banana Pro",
+        "provider": "google",
+        "model": "gemini-3-pro-image-preview",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "GPT-5.4 Thinking",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5.4-thinking",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "GPT-5.4 Pro",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5.4-pro",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Groq Llama 4 Scout",
+        "provider": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "apiKey": GROQ_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Nano Banana 2 (Flash Image)",
+        "provider": "google",
+        "model": "gemini-3.1-flash-image-preview",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 2.5 Pro",
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 2.5 Flash",
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemini 1.5 Flash-8B",
+        "provider": "google",
+        "model": "gemini-1.5-flash-8b",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Imagen 4 Ultra",
+        "provider": "google",
+        "model": "imagen-4.0-ultra-generate-001",
+        "apiKey": GEMINI_KEY,
+        "supportsVision": False,
+        "isImageModel": True,
+    },
+    {
+        "name": "GPT-5.3 Instant",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5.3-instant",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "GPT-5.3 Codex",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5.3-codex",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "OpenAI o3-pro",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "o3-pro",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "GPT Image 1.5",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/images/generations",
+        "model": "gpt-image-1.5",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": False,
+        "isImageModel": True,
+    },
+    {
+        "name": "GPT-5 mini",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5-mini",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "GPT-5 nano",
+        "provider": "openai",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-5-nano",
+        "apiKey": OPENAI_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Groq Llama 4 Maverick",
+        "provider": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "apiKey": GROQ_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Groq DeepSeek R1",
+        "provider": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "deepseek-r1-distill-llama-70b",
+        "apiKey": GROQ_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Groq Mixtral 8x7B",
+        "provider": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "mixtral-8x7b-32768",
+        "apiKey": GROQ_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Groq Llama Guard 4",
+        "provider": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "meta-llama/llama-guard-4-12b",
+        "apiKey": GROQ_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "OpenRouter Auto",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "openrouter/auto",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Llama 3.3 70B Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Xiaomi MiMo 309B Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "xiaomi/mimo-v2-flash:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "DeepSeek R1 Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "deepseek/deepseek-r1:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Mistral Small 3.1 Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "mistralai/mistral-small-3.1-24b-instruct:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Gemma 3 27B Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "google/gemma-3-27b-it:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Nemotron 3 Nano Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "nvidia/nemotron-3-nano-30b-a3b:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "DeepSeek V3",
+        "provider": "siliconflow",
+        "url": "https://api.siliconflow.cn/v1/chat/completions",
+        "model": "deepseek-ai/DeepSeek-V3",
+        "apiKey": SILICONFLOW_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "DeepSeek R1 Pro",
+        "provider": "siliconflow",
+        "url": "https://api.siliconflow.cn/v1/chat/completions",
+        "model": "deepseek-ai/DeepSeek-R1",
+        "apiKey": SILICONFLOW_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "OpenRouter Free Pool",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "openrouter/free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "Llama 4 Scout Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "meta-llama/llama-4-scout:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": True,
+    },
+    {
+        "name": "OpenAI gpt-oss-120b Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "openai/gpt-oss-120b:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Mistral Devstral 2 Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "mistralai/devstral-2512:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
+    {
+        "name": "Step 3.5 Flash Free",
+        "provider": "openrouter",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "model": "stepfun/step-3.5-flash:free",
+        "apiKey": OPENROUTER_KEY,
+        "supportsVision": False,
+    },
 ]
 
+# ==========================================
+# WATERMARK INTEGRATION 
+# ==========================================
 WATERMARK_LOGO_PATH = "watermark.jpeg"
-
 
 def add_visible_watermark_pil(img):
     img = img.convert("RGBA")
@@ -58,15 +358,17 @@ def add_visible_watermark_pil(img):
 
     logo = Image.open(WATERMARK_LOGO_PATH).convert("RGBA")
 
+    # --- AUTO-TRANSPARENT BACKGROUND LOGIC ---
     datas = logo.getdata()
     newData = []
     for item in datas:
         if item[0] > 220 and item[1] > 220 and item[2] > 220:
-            newData.append((255, 255, 255, 0))
+            newData.append((255, 255, 255, 0))  # Full transparent
         else:
             newData.append(item)
     logo.putdata(newData)
 
+    # --- SMALLER RESPONSIVE SIZING ---
     target_w = max(80, int(img.width * 0.12))
     ratio = target_w / logo.width
     logo = logo.resize((target_w, int(logo.height * ratio)))
@@ -79,6 +381,7 @@ def add_visible_watermark_pil(img):
 
 
 def generate_watermarked_image_bytes(image_bytes):
+    """Applies visible logo watermark to raw image bytes and returns watermarked bytes"""
     img = Image.open(BytesIO(image_bytes)).convert("RGB")
     img = add_visible_watermark_pil(img)
     out = BytesIO()
@@ -86,6 +389,7 @@ def generate_watermarked_image_bytes(image_bytes):
     return out.getvalue()
 
 
+# ================= CORE ENGINE CLASS =================
 class ZenTechBackendEngine:
     def __init__(self, gemini_api_key: str):
         self.gemini_api_key = gemini_api_key
@@ -103,6 +407,9 @@ class ZenTechBackendEngine:
             types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE),
         ]
 
+        if not self.gemini_api_key:
+            print("[WARN] Baseline Gemini API key missing. Default engine may fail.")
+            
         try:
             self.baseline_client = genai.Client(api_key=self.gemini_api_key)
             config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
@@ -116,21 +423,31 @@ class ZenTechBackendEngine:
         encoded_prompt = urllib.parse.quote(safe_prompt)
         seed = int(time.time())
 
-        POLLINATIONS_API_KEY = "sk_G8nhKDsZ44Hu3GqsEwJvD2u8HdytEAL0"
-        url = f"https://gen.pollinations.ai/image/{encoded_prompt}?model=flux&width=1024&height=1024&seed={seed}&nologo=true&key={POLLINATIONS_API_KEY}"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"}
+        # Pollinations is currently public/free tier logic based on previous script
+        url = f"https://gen.pollinations.ai/image/{encoded_prompt}?model=flux&width=1024&height=1024&seed={seed}&nologo=true"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"
+        }
 
         try:
+            print("[ZIMAGE] Requesting image from Pollinations server-side...")
             response = requests.get(url, headers=headers, timeout=45)
+
             if response.status_code == 200:
                 try:
+                    print("[ZIMAGE] Applying visible logo watermark...")
                     watermarked_bytes = generate_watermarked_image_bytes(response.content)
                     img_base64 = base64.b64encode(watermarked_bytes).decode("utf-8")
+                    print("[ZIMAGE] Visible watermark embedded successfully.")
                 except Exception as watermark_err:
+                    print(f"[ZIMAGE WARN] Watermark failed: {watermark_err}. Sending original response.")
                     img_base64 = base64.b64encode(response.content).decode("utf-8")
+
                 return f"![Zimage Generated](data:image/jpeg;base64,{img_base64})"
             else:
                 return f"**[IMAGE ERROR]** Pollinations API blocked the request (HTTP {response.status_code}). Details: {response.text}"
+
         except Exception as e:
             return f"**[IMAGE ERROR]** Connection to Pollinations failed. Details: {str(e)}"
 
@@ -159,8 +476,21 @@ class ZenTechBackendEngine:
         api_key = selected_engine.get("apiKey")
         model_name = selected_engine.get("model")
 
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
+        if not provider_url or not api_key:
+            return f"[Config Error]: Targeted engine '{target_mode}' setup parameter keys are missing or not set in environment."
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": self.system_instruction},
+                {"role": "user", "content": user_input},
+            ],
+        }
 
         try:
             response = requests.post(provider_url, headers=headers, json=payload, timeout=30)
@@ -173,6 +503,10 @@ class ZenTechBackendEngine:
             return f"[Connection Error]: Failed to query {selected_engine['name']}. Details: {str(e)}"
 
 
+# ==========================================
+# FASTAPI WEB SERVER SETUP
+# ==========================================
+
 app = FastAPI(title="ZenTech Backend API")
 
 app.add_middleware(
@@ -183,16 +517,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def home():
     return {"message": "running Successfully"}
 
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or AI_ENGINES_POOL[0]["apiKey"]
+# Start Baseline engine
 engine = ZenTechBackendEngine(gemini_api_key=GEMINI_KEY)
 
 class ChatRequest(BaseModel):
     message: str
     mode: str = "Standard"
+
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest):
@@ -201,9 +537,11 @@ async def chat_endpoint(req: ChatRequest):
             reply = engine.generate_image(req.message)
         else:
             reply = engine.dynamic_route_response(req.message, req.mode)
+
         return {"response": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
