@@ -68,7 +68,7 @@ def b64_decode(encoded_str: str) -> str:
         return encoded_str
 
 #================= AI ENGINES =================
-AI_ENGINES_POOL= 
+AI_ENGINES_POOL= [
     {"name": "NVIDIA Nemotron 70B", "provider": "nvidia", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "model": "nvidia/llama-3.1-nemotron-70b-instruct", "apiKey": "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", "supportsVision": False},
     {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
     {"name": "Groq Llama 3.3 70B", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "llama-3.3-70b-versatile", "apiKey": "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", "supportsVision": False},
