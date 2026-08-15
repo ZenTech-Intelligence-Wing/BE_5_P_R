@@ -1172,48 +1172,9 @@ app.add_middleware(
 @app.get("/")
 def home():
     return {
-        "message": "ZenTech Backend API - Anti-Remover Watermark System Active",
-        "features": "NO TEXT WATERMARK - Only watermark.jpeg logo image (MAXIMUM VISIBILITY)",
-        "avif_support": AVIF_AVAILABLE,
-        "anti_upload_protection": True,
-        "pro_user_support": {
-            "status": "ACTIVE",
-            "description": "PRO users get clean images without watermark",
-            "free_users": "Full watermark + anti-removal protection",
-            "pro_users": "Clean high-quality JPEG output"
-        },
-        "phototune_blocking": {
-            "status": "ACTIVE",
-            "target": "https://phototune.ai/process-watermark",
-            "method": "GIF output (Phototune REJECTS GIF format)",
-            "phototune_accepts": ["JPG", "JPEG", "PNG", "WEBP", "AVIF"],
-            "phototune_rejects": ["GIF", "BMP", "TIFF", "HEIC"],
-            "user_sees": "ERROR: 'Unsupported format. Please upload JPG, PNG, WEBP or AVIF'",
-            "how_it_works": "Client-side validator checks file extension -> sees .gif -> IMMEDIATE ERROR -> file never reaches server"
-        },
-        "default_output": "GIF (Phototune blocked)",
-        "watermark_visibility": "MAXIMUM - 12 positions, 70-100% opacity",
-        "supported_outputs": {
-            "GIF": "Phototune BLOCKED (default for free users)",
-            "JPEG": "High quality (default for PRO users)",
-            "PNG": "Phototune accepts (not recommended)",
-            "WEBP": "Phototune accepts (not recommended)",
-            "AVIF": "Phototune accepts (not recommended)"
-        },
-        "strategies": [
-            "1. LOGO AS SCENE ELEMENT - AI generates logo as part of image",
-            "2. MULTI-SCALE EMBEDDING - Logo at multiple resolutions",
-            "3. TEXTURE-BLENDED OVERLAY - Logo matches local image texture",
-            "4. EDGE-CONFUSING OVERLAY - Hides logo from edge detection",
-            "5. HIGHLY VISIBLE OVERLAY v4.0 - 12 positions, 70-100% opacity",
-            "6. ANTI-REMOVAL NOISE - Patterns that break removal algorithms",
-            "7. ADVERSARIAL ANTI-REMOVAL - Breaks AI detection algorithms",
-            "8. DCT FORENSIC - Invisible proof layer",
-            "9. ANTI-UPLOAD PROTECTION - Blocks watermark remover tools",
-            "10. GIF OUTPUT - Phototune shows ERROR on upload!",
-            "11. PRO USER BYPASS - Clean images for paid users"
-        ],
-        "version": "8.2-pro-user-support"
+        "message": "Server are working as expected no issue \n - Zen-Tech Operation team",
+      
+        "version": "1.12.332"
     }
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or AI_ENGINES_POOL[1]["apiKey"]
