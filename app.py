@@ -39,7 +39,9 @@ import urllib.parse
 from datetime import datetime
 import requests
 import random
-
+from memory.extraction import extract_memory
+from memory.embedding import generate_embedding
+from memory.storage import save_memory
 # ==========================================
 # AVIF SUPPORT - pillow-avif-plugin
 # ==========================================
@@ -1199,6 +1201,22 @@ async def chat_endpoint(req: ChatRequest):
             )
         else:
             reply = engine.dynamic_route_response(req.message, req.mode)
+# ==============================
+# MEMORY SYSTEM
+# ==============================
+memory = extract_memory(message)
+
+if memory:
+    embedding = generate_embedding(
+        memory["memory_text"]
+    )
+
+    save_memory(
+        user_id=user_id,
+        memory_text=memory["memory_text"],
+        embedding=embedding,
+        memory_type=memory["memory_type"]
+    )
         return {"response": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
