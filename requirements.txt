@@ -7,3 +7,4 @@ Pillow
 pillow-avif-plugin
 requests
 google-genai
+sentence-transformers
