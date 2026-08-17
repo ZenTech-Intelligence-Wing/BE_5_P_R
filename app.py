@@ -1201,25 +1201,31 @@ async def chat_endpoint(req: ChatRequest):
             )
         else:
             reply = engine.dynamic_route_response(req.message, req.mode)
-# ==============================
-# MEMORY SYSTEM
-# ==============================
-memory = extract_memory(message)
+  # ==============================
+    # MEMORY SYSTEM
+    # ==============================
 
-if memory:
-    embedding = generate_embedding(
-        memory["memory_text"]
-    )
+    memory = extract_memory(req.message)
 
-    save_memory(
-        user_id=user_id,
-        memory_text=memory["memory_text"],
-        embedding=embedding,
-        memory_type=memory["memory_type"]
+    if memory:
+        embedding = generate_embedding(
+            memory["memory_text"]
+        )
+
+        print("MEMORY EXTRACTED:", memory)
+        print("EMBEDDING GENERATED:", len(embedding))
+
+    # ==============================
+    # RETURN RESPONSE
+    # ==============================
+
+    return {"response": reply}
+
+except Exception as e:
+    raise HTTPException(
+        status_code=500,
+        detail=str(e)
     )
-        return {"response": reply}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
  
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860) 
