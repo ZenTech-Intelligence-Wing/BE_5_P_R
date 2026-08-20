@@ -1201,8 +1201,15 @@ class ChatRequest(BaseModel):
     is_pro_user: bool = False  # NEW: PRO user flag - True = no watermark, False = watermark
     user_id : str | None = None 
 @app.post("/chat")
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest , request:Request):
     try:
+        authorization = req.headers.get("Authorization")
+
+if not authorization:
+    raise HTTPException(
+        status_code=401,
+        detail="Authorization token missing"
+    )
         if req.mode == "Zimage Generation":
             reply = engine.generate_image(
                 req.message, 
@@ -1233,6 +1240,7 @@ if memory:
         memory_text=memory["memory_text"],
         memory_type=memory.get("memory_type", "text"),
         embedding=embedding
+        access_token=authorization
     )
 
     memory_info = {
