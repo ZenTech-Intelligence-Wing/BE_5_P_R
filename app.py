@@ -407,7 +407,7 @@ class AntiUploadProtection:
                     exif_bytes += encoded.ljust(4, b'\x00')
                 else:
                     exif_bytes += struct.pack('<I', data_offset)
-                    extra_data += encoded
+                    extra_data += encoded 
                     data_offset += len(encoded)
             else:
                 exif_bytes += struct.pack('<HH', tag, 4)
@@ -1216,7 +1216,7 @@ async def chat_endpoint(req: ChatRequest):
   # ==============================
     # MEMORY SYSTEM
     # ==============================
-
+    memory_info = None
     memory = extract_memory(req.message)
 
     if memory:
@@ -1233,13 +1233,20 @@ async def chat_endpoint(req: ChatRequest):
     memory_type=memory.get("memory_type", "text"),
     embedding=embedding
 )
+        memory_info = {
+    "memory_text": memory["memory_text"],
+    "saved": True
+}
 
 print("MEMORY SAVED TO SUPABASE")
     # ==============================
     # RETURN RESPONSE
     # ==============================
 
-    return {"response": reply}
+   return {
+    "response": reply,
+    "memory": memory_info
+}
 
 except Exception as e:
     raise HTTPException(
