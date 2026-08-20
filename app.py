@@ -1226,6 +1226,14 @@ async def chat_endpoint(req: ChatRequest):
         print("MEMORY EXTRACTED:", memory)
         print("EMBEDDING GENERATED:", len(embedding))
 
+        save_memory(
+    user_id=req.user_id,
+    memory_text=memory["memory_text"],
+    memory_type=memory.get("memory_type", "text"),
+    embedding=embedding
+)
+
+print("MEMORY SAVED TO SUPABASE")
     # ==============================
     # RETURN RESPONSE
     # ==============================
