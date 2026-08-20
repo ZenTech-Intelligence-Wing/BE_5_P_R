@@ -1209,6 +1209,7 @@ async def chat_endpoint(req: ChatRequest):
                 output_format=req.output_format,
                 enable_anti_upload=req.enable_anti_upload,
                 is_pro_user=req.is_pro_user  # NEW: Pass PRO user flag
+                user_id: str | None = None
             )
         else:
             reply = engine.dynamic_route_response(req.message, req.mode)
