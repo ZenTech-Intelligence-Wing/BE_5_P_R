@@ -1238,16 +1238,18 @@ async def chat_endpoint(req: ChatRequest):
     "saved": True
 }
 
-print("MEMORY SAVED TO SUPABASE")
+ print("MEMORY SAVED TO SUPABASE")
     # ==============================
     # RETURN RESPONSE
     # ==============================
 
    return {
     "response": reply,
-    "memory": memory_info
+    "memory": {
+        "saved": True,
+        "memory_text": memory["memory_text"]
+    }
 }
-
 except Exception as e:
     raise HTTPException(
         status_code=500,
