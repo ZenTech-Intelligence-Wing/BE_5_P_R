@@ -1217,38 +1217,35 @@ async def chat_endpoint(req: ChatRequest):
     # MEMORY SYSTEM
     # ==============================
     memory_info = None
-    memory = extract_memory(req.message)
 
-    if memory:
-        embedding = generate_embedding(
-            memory["memory_text"]
-        )
+memory = extract_memory(req.message)
 
-        print("MEMORY EXTRACTED:", memory)
-        print("EMBEDDING GENERATED:", len(embedding))
+if memory:
+    embedding = generate_embedding(
+        memory["memory_text"]
+    )
 
-        save_memory(
-    user_id=req.user_id,
-    memory_text=memory["memory_text"],
-    memory_type=memory.get("memory_type", "text"),
-    embedding=embedding
-)
-        memory_info = {
-    "memory_text": memory["memory_text"],
-    "saved": True
-}
+    print("MEMORY EXTRACTED:", memory)
+    print("EMBEDDING GENERATED:", len(embedding))
 
- print("MEMORY SAVED TO SUPABASE")
-    # ==============================
-    # RETURN RESPONSE
-    # ==============================
+    save_memory(
+        user_id=req.user_id,
+        memory_text=memory["memory_text"],
+        memory_type=memory.get("memory_type", "text"),
+        embedding=embedding
+    )
 
-   return {
-    "response": reply,
-    "memory": {
+    memory_info = {
         "saved": True,
-        "memory_text": memory["memory_text"]
+        "memory_text": memory["memory_text"],
+        "memory_type": memory.get("memory_type", "text")
     }
+
+    print("MEMORY SAVED TO SUPABASE:", memory_info)
+
+return {
+    "response": reply,
+    "memory": memory_info
 }
 except Exception as e:
     raise HTTPException(
