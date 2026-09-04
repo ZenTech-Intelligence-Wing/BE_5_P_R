@@ -77,7 +77,6 @@ AI_ENGINES_POOL = [
 WATERMARK_LOGO_PATH = "watermark.jpeg"
 WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 
-
 # ==========================================
 # WATERMARK CLASSES (Lazy Loaded for Render)
 # ==========================================
@@ -280,9 +279,6 @@ class ZenTechBackendEngine():
 
                 print(f"[ATTEMPT] Routing to {engine_name} ({provider})...")
 
-                # ========================================================
-                # 1. DIRECT HTTP REST API FOR GOOGLE (Bypasses buggy SDK)
-                # ========================================================
                 if provider == "google":
                     model_name = engine.get("model", "gemini-1.5-flash")
                     key_to_use = api_key if api_key else self.gemini_api_key
@@ -290,7 +286,6 @@ class ZenTechBackendEngine():
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
                     headers = {'Content-Type': 'application/json'}
                     
-                    # Handles both standard AIza keys and AQ OAuth tokens
                     if key_to_use.startswith("AIza") or key_to_use.startswith("AQ"):
                         url += f"?key={key_to_use}"
                     else:
@@ -301,7 +296,6 @@ class ZenTechBackendEngine():
                         "contents": [{"role": "user", "parts": [{"text": user_input}]}]
                     }
                     
-                    # ⚡ STRICT 5 SECOND TIMEOUT
                     response = requests.post(url, json=payload, headers=headers, timeout=5)
                     
                     if response.status_code == 200:
@@ -316,9 +310,6 @@ class ZenTechBackendEngine():
                         print(f"[FAIL] Google API {engine_name} returned {response.status_code}: {response.text}")
                         continue
 
-                # ========================================================
-                # 2. OPENAI-COMPATIBLE API FOR GROQ / OPENAI / OPENROUTER
-                # ========================================================
                 else:
                     provider_url = engine.get("url")
                     model_name = engine.get("model")
@@ -329,7 +320,6 @@ class ZenTechBackendEngine():
                     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                     payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
                     
-                    # ⚡ STRICT 5 SECOND TIMEOUT
                     response = requests.post(provider_url, headers=headers, json=payload, timeout=5)
                     
                     if response.status_code == 200:
@@ -359,10 +349,11 @@ class ZenTechBackendEngine():
 
 app = FastAPI(title="ZenTech Backend API - Lightning Fast AI Routing")
 
+# CRITICAL FIX: allow_credentials MUST be False if allow_origins is ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -381,7 +372,6 @@ class ChatRequest(BaseModel):
     is_pro_user: bool = False  
     user_id : str | None = None 
 
-# LAZY LOAD THE ENGINE
 global_engine = None
 
 def get_engine():
@@ -411,7 +401,6 @@ async def chat_endpoint(req: ChatRequest, request: Request):
                 is_pro_user=req.is_pro_user 
             )
         else:
-            # THIS IS WHERE TEXT IS GENERATED
             reply = active_engine.dynamic_route_response(req.message, req.mode)
             print("[ROUTER] Reply generated and ready to send to frontend.")
             
