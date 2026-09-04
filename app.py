@@ -4,25 +4,6 @@
 # WATERMARK SIZES REDUCED
 # PRO USER FEATURE: No watermark for paid users
 # ==========================================
-# NO TEXT WATERMARK - Only watermark.jpeg logo image
-# 
-# Strategy:
-# 1. LOGO AS SCENE ELEMENT - Describe watermark.jpeg in prompt
-#    AI renders logo as natural part of scene (stone carving, neon sign, etc.)
-# 2. HIGHLY VISIBLE LOGO OVERLAY - Post-generation logo overlay
-#    Large, prominent, multiple positions - AI remover can't remove all
-# 3. ADVERSARIAL ANTI-REMOVAL - Perturbations that break AI detection
-#    Confuses PhotoTune.ai, Dewatermark.ai detection algorithms
-# 4. DCT INVISIBLE FORENSIC - Invisible proof layer
-#    Court-level evidence even if visible layers removed
-# 5. FREQUENCY DOMAIN ATTACKS - Breaks frequency-based removal
-# 6. TEXTURE-MIMICKING NOISE - Logo blends with image texture
-# 7. MULTI-SCALE EMBEDDING - Logo at different resolutions
-# ==========================================
-# NEW: PRO USER SUPPORT
-# - If is_pro_user=True: Skip ALL watermark layers
-# - If is_pro_user=False/None: Apply full watermark protection
-# ==========================================
 
 import json
 import os
@@ -67,24 +48,27 @@ def b64_decode(encoded_str: str) -> str:
     except Exception:
         return encoded_str
 
+# NEW GOOGLE API KEY
+NEW_GOOGLE_KEY = "AQ.Ab8RN6KME25Zm5HNS2c0vGIPtGJayqVOZqKX09b6LJm5okDUHg"
+
 #================= AI ENGINES =================
 AI_ENGINES_POOL = [
     {"name": "NVIDIA Nemotron 70B", "provider": "nvidia", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "model": "nvidia/llama-3.1-nemotron-70b-instruct", "apiKey": "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", "supportsVision": False},
-    {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
+    {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "Groq Llama 3.3 70B", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "llama-3.3-70b-versatile", "apiKey": "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", "supportsVision": False},
-    {"name": "Gemini 1.5 Pro", "provider": "google", "model": "gemini-1.5-pro", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 3.1 Pro", "provider": "google", "model": "gemini-3.1-pro-preview", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 3 Flash", "provider": "google", "model": "gemini-3-flash-preview", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 3.1 Flash-Lite", "provider": "google", "model": "gemini-3.1-flash-lite-preview", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Nano Banana Pro", "provider": "google", "model": "gemini-3-pro-image-preview", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
+    {"name": "Gemini 1.5 Pro", "provider": "google", "model": "gemini-1.5-pro", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 3.1 Pro", "provider": "google", "model": "gemini-3.1-pro-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 3 Flash", "provider": "google", "model": "gemini-3-flash-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 3.1 Flash-Lite", "provider": "google", "model": "gemini-3.1-flash-lite-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Nano Banana Pro", "provider": "google", "model": "gemini-3-pro-image-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "GPT-5.4 Thinking", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.4-thinking", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
     {"name": "GPT-5.4 Pro", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.4-pro", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
     {"name": "Groq Llama 4 Scout", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "apiKey": "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", "supportsVision": True},
-    {"name": "Nano Banana 2 (Flash Image)", "provider": "google", "model": "gemini-3.1-flash-image-preview", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 2.5 Pro", "provider": "google", "model": "gemini-2.5-pro", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 2.5 Flash", "provider": "google", "model": "gemini-2.5-flash", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Gemini 1.5 Flash-8B", "provider": "google", "model": "gemini-1.5-flash-8b", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": True},
-    {"name": "Imagen 4 Ultra", "provider": "google", "model": "imagen-4.0-ultra-generate-001", "apiKey": b64_decode("QUl6YVN5QVdTbUVoSF9oa3dHNnh6akpVZGVybmgzUjl6Mzl6Mlk4"), "supportsVision": False, "isImageModel": True},
+    {"name": "Nano Banana 2 (Flash Image)", "provider": "google", "model": "gemini-3.1-flash-image-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 2.5 Pro", "provider": "google", "model": "gemini-2.5-pro", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 2.5 Flash", "provider": "google", "model": "gemini-2.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Gemini 1.5 Flash-8B", "provider": "google", "model": "gemini-1.5-flash-8b", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
+    {"name": "Imagen 4 Ultra", "provider": "google", "model": "imagen-4.0-ultra-generate-001", "apiKey": NEW_GOOGLE_KEY, "supportsVision": False, "isImageModel": True},
     {"name": "GPT-5.3 Instant", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.3-instant", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
     {"name": "GPT-5.3 Codex", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.3-codex", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": False},
     {"name": "OpenAI o3-pro", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "o3-pro", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
@@ -117,7 +101,6 @@ WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 # ==========================================
 # AVIF UTILITY FUNCTIONS
 # ==========================================
-
 def is_avif_image(image_bytes: bytes) -> bool:
     if len(image_bytes) < 12:
         return False
@@ -125,29 +108,22 @@ def is_avif_image(image_bytes: bytes) -> bool:
     return b'ftyp' in header and (b'avif' in header or b'avis' in header)
 
 def detect_image_format(image_bytes: bytes) -> str:
-    if is_avif_image(image_bytes):
-        return "AVIF"
-    if image_bytes[:2] == b'\xff\xd8':
-        return "JPEG"
-    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':
-        return "PNG"
-    if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
-        return "WEBP"
-    if image_bytes[:4] == b'GIF8':
-        return "GIF"
+    if is_avif_image(image_bytes): return "AVIF"
+    if image_bytes[:2] == b'\xff\xd8': return "JPEG"
+    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n': return "PNG"
+    if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP': return "WEBP"
+    if image_bytes[:4] == b'GIF8': return "GIF"
     return "UNKNOWN"
 
 def convert_avif_to_rgb(image_bytes: bytes) -> Image.Image:
-    if not AVIF_AVAILABLE:
-        raise RuntimeError("AVIF support not available. Install: pip install pillow-avif-plugin")
+    if not AVIF_AVAILABLE: raise RuntimeError("AVIF not available")
     img = Image.open(BytesIO(image_bytes))
     return img.convert("RGB")
 
 def save_as_format(img: Image.Image, fmt: str = "JPEG", quality: int = 92) -> bytes:
     out = BytesIO()
     if fmt.upper() == "AVIF":
-        if not AVIF_AVAILABLE:
-            raise RuntimeError("AVIF support not available")
+        if not AVIF_AVAILABLE: raise RuntimeError("AVIF support not available")
         img.save(out, format="AVIF", quality=quality, speed=6)
     elif fmt.upper() == "PNG":
         img.save(out, format="PNG")
@@ -159,36 +135,23 @@ def save_as_format(img: Image.Image, fmt: str = "JPEG", quality: int = 92) -> by
         img.save(out, format="JPEG", quality=quality)
     return out.getvalue()
 
-
 # ==========================================
-# UNIFIED LOGO WATERMARK ENGINE v8.1
+# WATERMARK ENGINE (Placeholder for brevity)
 # ==========================================
-# (Keeping only the core entry points for brevity in this full code, assuming you have 
-# the full implementations of HighlyVisibleLogoOverlay, TextureBlendedLogo, etc. from your original file)
-
 class LogoWatermarkEngine:
     def __init__(self):
-        # Placeholders for your protection classes
         pass
-
     def apply_post_generation(self, image_bytes: bytes, output_format: str = "JPEG", enable_anti_upload: bool = True, is_pro_user: bool = False) -> bytes:
         if is_pro_user:
-            print("[PRO USER] Watermark bypass enabled - Returning clean image")
             detected_fmt = detect_image_format(image_bytes)
-            if detected_fmt == "AVIF" and AVIF_AVAILABLE:
-                img = convert_avif_to_rgb(image_bytes)
-            else:
-                img = Image.open(BytesIO(image_bytes)).convert("RGB")
+            img = convert_avif_to_rgb(image_bytes) if detected_fmt == "AVIF" and AVIF_AVAILABLE else Image.open(BytesIO(image_bytes)).convert("RGB")
             return save_as_format(img, fmt="JPEG", quality=95)
-        
-        # Free User: Apply watermarks (Simplified here, assumes your classes exist)
         img = Image.open(BytesIO(image_bytes)).convert("RGB")
-        print(f"[WM] Applying watermarks and saving as {output_format}...")
         return save_as_format(img, fmt=output_format, quality=92)
 
 
 # ==========================================
-# CORE ENGINE - UPDATED FOR 429 FAILOVER
+# CORE ENGINE - UPDATED FOR INSTANT FAILOVER
 # ==========================================
 
 class ZenTechBackendEngine():
@@ -231,16 +194,10 @@ class ZenTechBackendEngine():
                     print(f"[ZIMAGE WARN] Post-gen failed: {e}")
                     img_base64 = base64.b64encode(response.content).decode("utf-8")
 
-                if is_pro_user:
-                    mime = "image/jpeg"
-                else:
-                    mime_map = {"AVIF": "image/avif", "GIF": "image/gif", "PNG": "image/png", "WEBP": "image/webp", "JPEG": "image/jpeg", "JPG": "image/jpeg"}
-                    mime = mime_map.get(output_format.upper(), "image/gif")
+                mime = "image/jpeg" if is_pro_user else {"AVIF": "image/avif", "GIF": "image/gif", "PNG": "image/png", "WEBP": "image/webp", "JPEG": "image/jpeg", "JPG": "image/jpeg"}.get(output_format.upper(), "image/gif")
 
-                block_notice = ""
-                if not is_pro_user and enable_anti_upload and output_format.upper() == "GIF":
-                    block_notice = "\n\n> **Phototune Protection:** This image is saved as `.gif` format. Phototune.ai does NOT support GIF and will show **'Unsupported format'** error on upload."
-
+                block_notice = "\n\n> **Phototune Protection:** This image is saved as `.gif` format. Phototune.ai does NOT support GIF and will show **'Unsupported format'** error on upload." if (not is_pro_user and enable_anti_upload and output_format.upper() == "GIF") else ""
+                
                 return f"![Zimage Generated](data:{mime};base64,{img_base64}){block_notice}"
             else:
                 return f"**[IMAGE ERROR]** API blocked (HTTP {response.status_code})."
@@ -251,15 +208,18 @@ class ZenTechBackendEngine():
         if not user_input.strip(): 
             return "Please enter a question or prompt."
 
-        # Find the requested engine
+        # 1. Grab the model the user requested
         selected_engine = next((e for e in AI_ENGINES_POOL if e["name"].lower() == target_mode.lower()), None)
         
-        # Build fallback chain: requested engine first, then everything else
+        # 2. Build the seamless fallback chain
         fallback_chain = []
         if selected_engine:
-            fallback_chain.append(selected_engine)
+            fallback_chain.append(selected_engine) # Try what they asked for first
+        
+        # Add ALL other models to the list (Groq, OpenAI, NVIDIA, OpenRouter)
         fallback_chain.extend([e for e in AI_ENGINES_POOL if e != selected_engine])
 
+        # 3. The Seamless Loop: It will iterate rapidly until one succeeds
         for engine in fallback_chain:
             print(f"[AI ROUTER] Routing to: {engine['name']}")
             try:
@@ -271,7 +231,7 @@ class ZenTechBackendEngine():
                     config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
                     chat = client.chats.create(model=model_to_use, config=config)
                     response = chat.send_message(user_input)
-                    return response.text or ""
+                    return response.text or "" # Success! Break out of the loop and return.
                 
                 else:
                     provider_url = engine.get("url")
@@ -279,7 +239,7 @@ class ZenTechBackendEngine():
                     model_name = engine.get("model")
                     
                     if not provider_url or not api_key:
-                        continue 
+                        continue # If config is missing, instantly jump to the next model
 
                     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                     payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
@@ -288,23 +248,23 @@ class ZenTechBackendEngine():
                     
                     if response.status_code == 200:
                         data = response.json()
-                        return data["choices"][0]["message"]["content"]
+                        return data["choices"][0]["message"]["content"] # Success! Break out and return.
                     else:
-                        print(f"[Provider Error] {engine['name']} HTTP {response.status_code}. Failing over...")
-                        continue
+                        print(f"[Provider Error] {engine['name']} HTTP {response.status_code}. Failing over instantly...")
+                        continue # If a model is down/429, jump to the next immediately
 
             except Exception as e:
-                print(f"[Connection Error] {engine['name']} failed: {str(e)}. Failing over...")
-                continue
+                print(f"[Connection Error] {engine['name']} failed: {str(e)}. Failing over instantly...")
+                continue # If network drops, jump to the next immediately
 
-        return "[System Error]: All AI engines in the fallback pool are currently unavailable."
+        return "[System Error]: All 41 AI engines in the fallback pool are currently unavailable or rate limited."
 
 
 # ==========================================
-# FASTAPI SERVER - UPDATED ENDPOINTS
+# FASTAPI SERVER
 # ==========================================
 
-app = FastAPI(title="ZenTech Backend API - Anti-Remover Watermark v8.2")
+app = FastAPI(title="ZenTech Backend API - AI Routing v8.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -335,7 +295,6 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest, request: Request):
     try:
-        # Read from FastAPI request object
         authorization = request.headers.get("Authorization")
 
         if not authorization:
@@ -363,10 +322,6 @@ async def chat_endpoint(req: ChatRequest, request: Request):
         if memory:
             embedding = generate_embedding(memory["memory_text"])
 
-            print("MEMORY EXTRACTED:", memory)
-            print("EMBEDDING GENERATED:", len(embedding))
-
-            # FIXED COMMA
             save_memory(
                 user_id=req.user_id,
                 memory_text=memory["memory_text"],
