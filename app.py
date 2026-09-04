@@ -268,9 +268,11 @@ class ZenTechBackendEngine():
         except Exception as e:
             return f"**[IMAGE ERROR]** Connection failed. Details: {str(e)}"
 
-    def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
+  def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
         if not user_input.strip(): 
             return "Please enter a question or prompt."
+
+        print(f"\n[ROUTER] Starting request for mode: {target_mode}")
 
         selected_engine = next((e for e in AI_ENGINES_POOL if e["name"].lower() == target_mode.lower()), None)
         
@@ -281,45 +283,83 @@ class ZenTechBackendEngine():
         fallback_chain.extend([e for e in AI_ENGINES_POOL if e != selected_engine])
 
         for engine in fallback_chain:
+            engine_name = engine.get('name', 'Unknown')
+            provider = engine.get("provider")
+            print(f"[ROUTER] Trying engine: {engine_name} ({provider})")
+            
             try:
-                # Instant check: skip placeholders to prevent timeouts
+                # 1. Skip invalid placeholders instantly
                 api_key = engine.get("apiKey", "")
                 if not api_key or "YOUR_" in str(api_key):
+                    print(f"[ROUTER] Skipping {engine_name}: Invalid API Key placeholder.")
                     continue
 
-                if engine["provider"] == "google":
-                    client = genai.Client(api_key=api_key)
-                    config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
-                    chat = client.chats.create(model=engine["model"], config=config)
-                    response = chat.send_message(user_input)
-                    if response and response.text:
-                        return response.text
-                
+                # 2. Google Provider Logic
+                if provider == "google":
+                    try:
+                        print(f"[ROUTER] Initializing Google Client for {engine_name}...")
+                        key_to_use = api_key if api_key else self.gemini_api_key
+                        
+                        # Simplified client initialization
+                        client = genai.Client(api_key=key_to_use)
+                        chat = client.chats.create(model=engine.get("model", "gemini-1.5-flash"))
+                        
+                        print(f"[ROUTER] Sending message to {engine_name}...")
+                        response = chat.send_message(user_input)
+                        
+                        if response and response.text:
+                            print(f"[ROUTER] SUCCESS! {engine_name} responded.")
+                            return response.text
+                        else:
+                            print(f"[ROUTER] Warning: {engine_name} returned empty text.")
+                            
+                    except Exception as google_err:
+                        print(f"[ROUTER FAIL] Google specifically failed on {engine_name}: {str(google_err)}")
+                        continue # Jump to fallback
+
+                # 3. Third-Party Provider Logic (Groq, OpenAI, OpenRouter)
                 else:
                     provider_url = engine.get("url")
                     model_name = engine.get("model")
                     
                     if not provider_url:
+                        print(f"[ROUTER] Skipping {engine_name}: No URL provided.")
                         continue 
 
-                    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                    payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
+                    print(f"[ROUTER] Making HTTP request to {engine_name} at {provider_url}...")
+                    headers = {
+                        "Authorization": f"Bearer {api_key}", 
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "model": model_name, 
+                        "messages": [
+                            {"role": "system", "content": self.system_instruction}, 
+                            {"role": "user", "content": user_input}
+                        ]
+                    }
                     
-                    # ⚡ 5-SECOND TIMEOUT FOR LIGHTNING FAST FAILOVER
                     response = requests.post(provider_url, headers=headers, json=payload, timeout=5)
                     
                     if response.status_code == 200:
                         data = response.json()
                         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
                         if content:
+                            print(f"[ROUTER] SUCCESS! {engine_name} responded via HTTP.")
                             return content
+                        else:
+                            print(f"[ROUTER] Warning: {engine_name} returned empty JSON content.")
+                    else:
+                        print(f"[ROUTER FAIL] {engine_name} HTTP {response.status_code}: {response.text}")
+                        continue
 
             except Exception as e:
-                # Log exact engine failure, but safely continue to next engine
-                print(f"[ROUTER FAIL] Engine {engine.get('name')} failed: {e}")
+                print(f"[ROUTER CRASH] Unhandled exception on {engine_name}: {str(e)}")
                 continue 
 
+        print("[ROUTER FATAL] Loop finished. No engines responded.")
         return "I'm currently experiencing high traffic across all AI channels. Please try sending your message again."
+      
 
 
 # ==========================================
