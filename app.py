@@ -342,14 +342,12 @@ class ZenTechBackendEngine():
         print("[FATAL] All models in fallback chain failed.")
         return "I'm currently experiencing high traffic across all AI channels. Please try sending your message again."
 
-
 # ==========================================
 # FASTAPI SERVER
 # ==========================================
 
 app = FastAPI(title="ZenTech Backend API - Lightning Fast AI Routing")
 
-# CRITICAL FIX: allow_credentials MUST be False if allow_origins is ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -405,29 +403,13 @@ async def chat_endpoint(req: ChatRequest, request: Request):
             print("[ROUTER] Reply generated and ready to send to frontend.")
             
         memory_info = None
+
+        # ===============================================
+        # DIAGNOSTIC BYPASS: Disable all local AI memory processing
+        # ===============================================
         try:
-            print("[MEMORY] Running memory extraction...")
-            from memory.extraction import extract_memory
-            from memory.embedding import generate_embedding
-            from memory.storage import save_memory
-
-            memory = extract_memory(req.message)
-
-            if memory:
-                embedding = generate_embedding(memory["memory_text"])
-                save_memory(
-                    user_id=req.user_id,
-                    memory_text=memory["memory_text"],
-                    memory_type=memory.get("memory_type", "text"),
-                    embedding=embedding,
-                    access_token=authorization
-                )
-                memory_info = {
-                    "saved": True,
-                    "memory_text": memory["memory_text"],
-                    "memory_type": memory.get("memory_type", "text")
-                }
-            print("[MEMORY] Memory extraction finished.")
+            print("[MEMORY] Bypassing memory to test connection...")
+            pass 
         except Exception as mem_err:
             print(f"[MEMORY WARN] Failed to save memory context: {mem_err}")
 
