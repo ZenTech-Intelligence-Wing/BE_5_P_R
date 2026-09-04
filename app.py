@@ -74,6 +74,8 @@ AI_ENGINES_POOL = [
     {"name": "Mistral Small 3.1 Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "mistralai/mistral-small-3.1-24b-instruct:free", "apiKey": "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", "supportsVision": True},
     {"name": "Gemma 3 27B Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "google/gemma-3-27b-it:free", "apiKey": "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", "supportsVision": True},
     {"name": "Nemotron 3 Nano Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "nvidia/nemotron-3-nano-30b-a3b:free", "apiKey": "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", "supportsVision": False},
+    {"name": "DeepSeek V3", "provider": "siliconflow", "url": "https://api.siliconflow.cn/v1/chat/completions", "model": "deepseek-ai/DeepSeek-V3", "apiKey": "YOUR_SILICONFLOW_KEY", "supportsVision": False},
+    {"name": "DeepSeek R1 Pro", "provider": "siliconflow", "url": "https://api.siliconflow.cn/v1/chat/completions", "model": "deepseek-ai/DeepSeek-R1", "apiKey": "YOUR_SILICONFLOW_KEY", "supportsVision": False},
     {"name": "OpenRouter Free Pool", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "openrouter/free", "apiKey": "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", "supportsVision": True},
     {"name": "Llama 4 Scout Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "meta-llama/llama-4-scout:free", "apiKey": "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", "supportsVision": True},
     {"name": "OpenAI gpt-oss-120b Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "openai/gpt-oss-120b:free", "apiKey": "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", "supportsVision": False},
@@ -86,7 +88,7 @@ WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 
 
 # ==========================================
-# WATERMARK CLASSES (Lazy Loaded)
+# WATERMARK CLASSES (Lazy Loaded for Render)
 # ==========================================
 
 class HighlyVisibleLogoOverlay:
@@ -280,12 +282,12 @@ class ZenTechBackendEngine():
 
         for engine in fallback_chain:
             try:
-                # Instant check: skip placeholders
-                if "YOUR_" in str(engine.get("apiKey", "")):
+                # Instant check: skip placeholders to prevent timeouts
+                api_key = engine.get("apiKey", "")
+                if not api_key or "YOUR_" in str(api_key):
                     continue
 
                 if engine["provider"] == "google":
-                    api_key = engine.get("apiKey", self.gemini_api_key)
                     client = genai.Client(api_key=api_key)
                     config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
                     chat = client.chats.create(model=engine["model"], config=config)
@@ -295,10 +297,9 @@ class ZenTechBackendEngine():
                 
                 else:
                     provider_url = engine.get("url")
-                    api_key = engine.get("apiKey")
                     model_name = engine.get("model")
                     
-                    if not provider_url or not api_key:
+                    if not provider_url:
                         continue 
 
                     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -312,13 +313,13 @@ class ZenTechBackendEngine():
                         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
                         if content:
                             return content
-                    else:
-                        continue 
 
             except Exception as e:
+                # Log exact engine failure, but safely continue to next engine
+                print(f"[ROUTER FAIL] Engine {engine.get('name')} failed: {e}")
                 continue 
 
-        return "[System Error]: All AI engines in the fallback pool failed to respond quickly."
+        return "I'm currently experiencing high traffic across all AI channels. Please try sending your message again."
 
 
 # ==========================================
@@ -407,7 +408,7 @@ async def chat_endpoint(req: ChatRequest, request: Request):
                     "memory_type": memory.get("memory_type", "text")
                 }
         except Exception as mem_err:
-            pass
+            print(f"[MEMORY WARN] Failed to save memory context: {mem_err}")
 
         return {
             "response": reply,
@@ -421,3 +422,8 @@ async def chat_endpoint(req: ChatRequest, request: Request):
             status_code=500,
             detail=str(e)
         )
+
+if __name__ == "__main__":
+    # REQUIRED FOR RENDER: Dynamically fetch the port assigned by Render's environment
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
