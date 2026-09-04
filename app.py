@@ -1,27 +1,7 @@
 # ==========================================
 # PURE LOGO AI-PROOF WATERMARK SYSTEM v8.1
 # ANTI-WATERMARK REMOVER PROTECTION
-# WATERMARK SIZES REDUCED
-# PRO USER FEATURE: No watermark for paid users
-# ==========================================
-# NO TEXT WATERMARK - Only watermark.jpeg logo image
-# 
-# Strategy:
-# 1. LOGO AS SCENE ELEMENT - Describe watermark.jpeg in prompt
-#    AI renders logo as natural part of scene (stone carving, neon sign, etc.)
-# 2. HIGHLY VISIBLE LOGO OVERLAY - Post-generation logo overlay
-#    Large, prominent, multiple positions - AI remover can't remove all
-# 3. ADVERSARIAL ANTI-REMOVAL - Perturbations that break AI detection
-#    Confuses PhotoTune.ai, Dewatermark.ai detection algorithms
-# 4. DCT INVISIBLE FORENSIC - Invisible proof layer
-#    Court-level evidence even if visible layers removed
-# 5. FREQUENCY DOMAIN ATTACKS - Breaks frequency-based removal
-# 6. TEXTURE-MIMICKING NOISE - Logo blends with image texture
-# 7. MULTI-SCALE EMBEDDING - Logo at different resolutions
-# ==========================================
-# NEW: PRO USER SUPPORT
-# - If is_pro_user=True: Skip ALL watermark layers
-# - If is_pro_user=False/None: Apply full watermark protection
+# RENDER.COM MEMORY OPTIMIZED VERSION
 # ==========================================
 
 import json
@@ -29,30 +9,15 @@ import os
 import sys
 import time
 import base64  
-import cv2
 import hashlib 
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
-from io import BytesIO
 import urllib.parse
 from datetime import datetime
 import requests
 import random
 import struct
-from memory.extraction import extract_memory
-from memory.embedding import generate_embedding
-from memory.storage import save_memory
 
-# ==========================================
-# AVIF SUPPORT - pillow-avif-plugin
-# ==========================================
-try:
-    import pillow_avif
-    AVIF_AVAILABLE = True
-    print("[AVIF] pillow-avif-plugin loaded successfully")
-except ImportError:
-    AVIF_AVAILABLE = False
-    print("[AVIF] pillow-avif-plugin not available, AVIF features disabled")
+# LAZY LOADING: We do NOT import cv2, numpy, or PIL globally.
+# This prevents Render from crashing on the 512MB RAM limit during startup.
 
 from google import genai 
 from google.genai import types
@@ -60,6 +25,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+
+# Memory system imports
+from memory.extraction import extract_memory
+from memory.embedding import generate_embedding
+from memory.storage import save_memory
 
 def b64_decode(encoded_str: str) -> str:
     try:
@@ -70,7 +40,7 @@ def b64_decode(encoded_str: str) -> str:
 # NEW GOOGLE API KEY
 NEW_GOOGLE_KEY = "AQ.Ab8RN6KME25Zm5HNS2c0vGIPtGJayqVOZqKX09b6LJm5okDUHg"
 
-#================= AI ENGINES =================
+#================= AI ENGINES (FULL 40+ LIST) =================
 AI_ENGINES_POOL = [
     {"name": "NVIDIA Nemotron 70B", "provider": "nvidia", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "model": "nvidia/llama-3.1-nemotron-70b-instruct", "apiKey": "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", "supportsVision": False},
     {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
@@ -118,161 +88,143 @@ WATERMARK_LOGO_PATH = "watermark.jpeg"
 WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 
 # ==========================================
-# AVIF UTILITY FUNCTIONS
+# WATERMARK CLASSES (Lazy Loaded for Render)
 # ==========================================
-
-def is_avif_image(image_bytes: bytes) -> bool:
-    if len(image_bytes) < 12:
-        return False
-    header = image_bytes[:12]
-    return b'ftyp' in header and (b'avif' in header or b'avis' in header)
-
-def detect_image_format(image_bytes: bytes) -> str:
-    if is_avif_image(image_bytes): return "AVIF"
-    if image_bytes[:2] == b'\xff\xd8': return "JPEG"
-    if image_bytes[:8] == b'\x89PNG\r\n\x1a\n': return "PNG"
-    if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP': return "WEBP"
-    if image_bytes[:4] == b'GIF8': return "GIF"
-    return "UNKNOWN"
-
-def convert_avif_to_rgb(image_bytes: bytes) -> Image.Image:
-    if not AVIF_AVAILABLE: raise RuntimeError("AVIF support not available. Install: pip install pillow-avif-plugin")
-    img = Image.open(BytesIO(image_bytes))
-    return img.convert("RGB")
-
-def save_as_format(img: Image.Image, fmt: str = "JPEG", quality: int = 92) -> bytes:
-    out = BytesIO()
-    if fmt.upper() == "AVIF":
-        if not AVIF_AVAILABLE: raise RuntimeError("AVIF support not available")
-        img.save(out, format="AVIF", quality=quality, speed=6)
-    elif fmt.upper() == "PNG":
-        img.save(out, format="PNG")
-    elif fmt.upper() in ("JPEG", "JPG"):
-        img.save(out, format="JPEG", quality=quality)
-    elif fmt.upper() == "WEBP":
-        img.save(out, format="WEBP", quality=quality)
-    else:
-        img.save(out, format="JPEG", quality=quality)
-    return out.getvalue()
-
-
-# ==========================================
-# WATERMARK CLASSES (Restored)
-# ==========================================
-
-class PhototuneErrorTrigger:
-    def __init__(self, secret_key: str):
-        self.secret_key = secret_key
-    def create_error_trigger_file(self, img: Image.Image, fmt: str = "JPEG") -> bytes:
-        out = BytesIO()
-        img.save(out, format="JPEG" if fmt not in ["PNG", "GIF", "WEBP"] else fmt)
-        return out.getvalue()
-    def create_browser_console_error(self, img_bytes: bytes) -> bytes:
-        return img_bytes
-
-class AntiUploadProtection:
-    def __init__(self, secret_key: str):
-        self.secret_key = secret_key
-        self.error_trigger = PhototuneErrorTrigger(secret_key)
-    def apply(self, img: Image.Image, image_bytes: bytes, output_format: str = "JPEG") -> bytes:
-        return image_bytes
 
 class HighlyVisibleLogoOverlay:
     def __init__(self, logo_path: str):
         self.logo_path = logo_path
-    def apply(self, img: Image.Image) -> Image.Image:
-        return img
+    def apply(self, img):
+        import os
+        from PIL import Image
+        if not os.path.exists(self.logo_path): return img
+        img = img.convert("RGBA")
+        logo = Image.open(self.logo_path).convert("RGBA")
+        datas = logo.getdata()
+        newData = [(255, 255, 255, 0) if (item[0] > 210 and item[1] > 210 and item[2] > 210) else item for item in datas]
+        logo.putdata(newData)
+        w, h = img.size
+        target_w = max(60, int(w * 0.08))
+        ratio = target_w / logo.width
+        logo_resized = logo.resize((target_w, int(logo.height * ratio)))
+        logo_data = list(logo_resized.getdata())
+        transparent = [(r, g, b, int(a * 0.75)) for r, g, b, a in logo_data]
+        logo_resized.putdata(transparent)
+        layer = Image.new("RGBA", img.size, (0,0,0,0))
+        pos = (w - logo_resized.width - 15, h - logo_resized.height - 15)
+        layer.paste(logo_resized, pos, logo_resized)
+        return Image.alpha_composite(img, layer).convert("RGB")
 
 class TextureBlendedLogo:
     def __init__(self, logo_path: str):
         self.logo_path = logo_path
-    def apply(self, img: Image.Image) -> Image.Image:
-        return img
+    def apply(self, img):
+        import os
+        import numpy as np
+        import cv2
+        from PIL import Image
+        if not os.path.exists(self.logo_path): return img
+        img_np = np.array(img).astype(np.float32)
+        h, w = img_np.shape[:2]
+        logo = Image.open(self.logo_path).convert("RGBA")
+        datas = logo.getdata()
+        newData = [(255, 255, 255, 0) if (item[0] > 220 and item[1] > 220 and item[2] > 220) else item for item in datas]
+        logo.putdata(newData)
+        target_w = max(80, int(w * 0.10))
+        ratio = target_w / logo.width
+        logo = logo.resize((target_w, int(logo.height * ratio)))
+        logo_np = np.array(logo).astype(np.float32)
+        lx, ly = logo_np.shape[1], logo_np.shape[0]
+        x_pos, y_pos = w - lx - 20, h - ly - 20
+        if x_pos < 0 or y_pos < 0: return img
+        local = img_np[y_pos:y_pos+ly, x_pos:x_pos+lx]
+        local_mean = np.mean(local, axis=(0,1))
+        local_std = np.std(local, axis=(0,1))
+        alpha = logo_np[:, :, 3:4] / 255.0
+        logo_rgb = logo_np[:, :, :3]
+        logo_adjusted = logo_rgb.copy()
+        for c in range(3):
+            logo_adjusted[:, :, c] = logo_rgb[:, :, c] * 0.6 + local_mean[c] * 0.4
+        logo_adjusted += np.random.randn(ly, lx, 3) * local_std * 0.15
+        logo_adjusted = np.clip(logo_adjusted, 0, 255)
+        blended = local * (1 - alpha * 0.55) + logo_adjusted * (alpha * 0.55)
+        img_np[y_pos:y_pos+ly, x_pos:x_pos+lx] = blended
+        return Image.fromarray(np.clip(img_np, 0, 255).astype(np.uint8))
 
 class AdversarialAntiRemoval:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
     def apply(self, img: np.ndarray) -> np.ndarray:
-        return img
-
-class DCTForensicWatermark:
-    def __init__(self, secret_key: str, strength: float = 0.25):
-        self.secret_key = secret_key
-    def embed(self, image: np.ndarray, text: str = "ZENTECH") -> np.ndarray:
-        return image
-
-class MultiScaleLogoEmbedding:
-    def __init__(self, logo_path: str):
-        self.logo_path = logo_path
-    def apply(self, img: Image.Image) -> Image.Image:
-        return img
+        import numpy as np
+        import cv2
+        result = img.astype(np.float32)
+        h, w = img.shape[:2]
+        np.random.seed(int(hashlib.sha256(f"{self.secret_key}_adv".encode()).hexdigest(), 16) % (2**32))
+        lf_noise = np.random.randn(h//4+1, w//4+1, 3) * 4.0
+        lf_noise = cv2.resize(lf_noise, (w, h))
+        lf_noise = cv2.GaussianBlur(lf_noise, (21, 21), 7.0)
+        result += lf_noise * 0.6
+        hf_noise = np.random.randn(h, w, 3) * 1.5
+        hf_noise = cv2.GaussianBlur(hf_noise, (3, 3), 0.8)
+        result += hf_noise * 0.3
+        return np.clip(result, 0, 255).astype(np.uint8)
 
 class AntiRemovalNoisePattern:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
     def apply(self, img: np.ndarray) -> np.ndarray:
-        return img
-
-class EdgeConfusingOverlay:
-    def __init__(self, logo_path: str):
-        self.logo_path = logo_path
-    def apply(self, img: Image.Image) -> Image.Image:
-        return img
+        import numpy as np
+        result = img.astype(np.float32)
+        h, w = img.shape[:2]
+        np.random.seed(int(hashlib.sha256(f"{self.secret_key}_noise".encode()).hexdigest(), 16) % (2**32))
+        checker = np.zeros((h, w, 3))
+        checker[::2, ::2] = np.random.randn(h//2 + h%2, w//2 + w%2, 3) * 1.5
+        result += checker[:h, :w]
+        return np.clip(result, 0, 255).astype(np.uint8)
 
 class LogoWatermarkEngine:
     def __init__(self):
         self.visible_overlay = HighlyVisibleLogoOverlay(WATERMARK_LOGO_PATH)
         self.texture_blended = TextureBlendedLogo(WATERMARK_LOGO_PATH)
         self.adversarial = AdversarialAntiRemoval(WATERMARK_SECRET_KEY)
-        self.dct_wm = DCTForensicWatermark(WATERMARK_SECRET_KEY)
-        self.multi_scale = MultiScaleLogoEmbedding(WATERMARK_LOGO_PATH)
         self.anti_noise = AntiRemovalNoisePattern(WATERMARK_SECRET_KEY)
-        self.edge_confusing = EdgeConfusingOverlay(WATERMARK_LOGO_PATH)
-        self.anti_upload = AntiUploadProtection(WATERMARK_SECRET_KEY)
 
     def apply_post_generation(self, image_bytes: bytes, output_format: str = "JPEG", enable_anti_upload: bool = True, is_pro_user: bool = False) -> bytes:
+        from io import BytesIO
+        from PIL import Image
+        import numpy as np
+
         if is_pro_user:
             print("[PRO USER] Watermark bypass enabled - Returning clean image")
-            detected_fmt = detect_image_format(image_bytes)
-            if detected_fmt == "AVIF" and AVIF_AVAILABLE:
-                img = convert_avif_to_rgb(image_bytes)
-            else:
-                img = Image.open(BytesIO(image_bytes)).convert("RGB")
-            return save_as_format(img, fmt="JPEG", quality=95)
-        
-        detected_fmt = detect_image_format(image_bytes)
-        if detected_fmt == "AVIF" and AVIF_AVAILABLE:
-            img = convert_avif_to_rgb(image_bytes)
-        else:
             img = Image.open(BytesIO(image_bytes)).convert("RGB")
-
-        print("[WM] Applying multi-scale logo embedding...")
-        img = self.multi_scale.apply(img)
-        print("[WM] Applying texture-blended logo...")
-        img = self.texture_blended.apply(img)
-        print("[WM] Applying edge-confusing overlay...")
-        img = self.edge_confusing.apply(img)
+            out = BytesIO()
+            img.save(out, format="JPEG", quality=95)
+            return out.getvalue()
+        
+        # Free users: Apply Watermarks
+        img = Image.open(BytesIO(image_bytes)).convert("RGB")
         print("[WM] Applying highly visible overlay...")
         img = self.visible_overlay.apply(img)
-
+        print("[WM] Applying texture-blended logo...")
+        img = self.texture_blended.apply(img)
+        
         img_np = np.array(img)
         print("[WM] Applying anti-removal noise...")
         img_np = self.anti_noise.apply(img_np)
         print("[WM] Applying adversarial perturbations...")
         img_np = self.adversarial.apply(img_np)
-        print("[WM] Applying DCT forensic watermark...")
-        img_np = self.dct_wm.embed(img_np)
         img = Image.fromarray(img_np)
 
-        if enable_anti_upload and output_format.upper() == "GIF":
-            return self._create_phototune_blocking_gif(img)
-
-        return save_as_format(img, fmt=output_format, quality=92)
-
-    def _create_phototune_blocking_gif(self, img: Image.Image) -> bytes:
         out = BytesIO()
-        img_gif = img.convert("P", palette=Image.ADAPTIVE, colors=256)
-        img_gif.save(out, format="GIF", optimize=True)
+        # Fallback format handling
+        save_fmt = output_format if output_format.upper() in ["JPEG", "JPG", "PNG", "GIF", "WEBP"] else "JPEG"
+        
+        if enable_anti_upload and save_fmt == "GIF":
+            img = img.convert("P", palette=Image.ADAPTIVE, colors=256)
+            img.save(out, format="GIF", optimize=True)
+            return out.getvalue()
+
+        img.save(out, format=save_fmt, quality=92)
         return out.getvalue()
 
 # ==========================================
@@ -294,14 +246,6 @@ class ZenTechBackendEngine():
             types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE),
             types.SafetySetting(category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE),
         ]
-        # Attempt to load baseline, but do not crash if key is bad
-        try:
-            self.baseline_client = genai.Client(api_key=self.gemini_api_key)
-            config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
-            self.baseline_chat = self.baseline_client.chats.create(model="gemini-2.5-flash", config=config)
-            print("[SYSTEM] Baseline Gemini Engine loaded.")
-        except Exception as e:
-            print(f"[ERROR] Baseline startup exception (Will rely entirely on fallback chain): {e}")
 
     def generate_image(self, prompt: str, output_format: str = "GIF", enable_anti_upload: bool = True, is_pro_user: bool = False) -> str:
         safe_prompt = f"{prompt}, no human faces, no human figures, highly detailed, 4k"
@@ -340,29 +284,26 @@ class ZenTechBackendEngine():
         if not user_input.strip(): 
             return "Please enter a question or prompt."
 
-        # 1. Grab the exact model the user requested from the UI dropdown
+        # Grab the requested model
         selected_engine = next((e for e in AI_ENGINES_POOL if e["name"].lower() == target_mode.lower()), None)
         
-        # 2. Build the seamless fallback chain
+        # Build seamless fallback chain (requested model first, then all 40 backups)
         fallback_chain = []
         if selected_engine:
-            fallback_chain.append(selected_engine) # Always try what they asked for first
+            fallback_chain.append(selected_engine) 
         
-        # Add ALL other models to the list (Groq, OpenAI, NVIDIA, OpenRouter) as backups
         fallback_chain.extend([e for e in AI_ENGINES_POOL if e != selected_engine])
 
-        # 3. The Seamless Loop: It will iterate instantly until one succeeds
         for engine in fallback_chain:
             print(f"[AI ROUTER] Routing request to: {engine['name']} ({engine['provider']})")
             try:
                 if engine["provider"] == "google":
-                    # We initialize a FRESH client here specifically so we grab the exact API key in the list
                     api_key = engine.get("apiKey", self.gemini_api_key)
                     client = genai.Client(api_key=api_key)
                     config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
                     chat = client.chats.create(model=engine["model"], config=config)
                     response = chat.send_message(user_input)
-                    return response.text or "" # Success! Break out of the loop and return text.
+                    return response.text or "" 
                 
                 else:
                     provider_url = engine.get("url")
@@ -370,7 +311,7 @@ class ZenTechBackendEngine():
                     model_name = engine.get("model")
                     
                     if not provider_url or not api_key:
-                        continue # If a model is misconfigured, instantly jump to the next one
+                        continue 
 
                     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                     payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
@@ -379,23 +320,23 @@ class ZenTechBackendEngine():
                     
                     if response.status_code == 200:
                         data = response.json()
-                        return data["choices"][0]["message"]["content"] # Success! Break out and return text.
+                        return data["choices"][0]["message"]["content"] 
                     else:
                         print(f"[Provider Error] {engine['name']} HTTP {response.status_code}. Failing over instantly...")
-                        continue # If a model throws 429/401, jump to the next immediately
+                        continue 
 
             except Exception as e:
                 print(f"[Connection Error] {engine['name']} failed: {str(e)}. Failing over instantly...")
-                continue # If network drops entirely, jump to the next immediately
+                continue 
 
-        return "[System Error]: All 41 AI engines in the fallback pool are currently unavailable or rate limited. Please try again in a few moments."
+        return "[System Error]: All 41 AI engines in the fallback pool are currently unavailable or rate limited."
 
 
 # ==========================================
 # FASTAPI SERVER
 # ==========================================
 
-app = FastAPI(title="ZenTech Backend API - AI Routing v8.2")
+app = FastAPI(title="ZenTech Backend API - AI Routing & Render Optimized")
 
 app.add_middleware(
     CORSMiddleware,
@@ -408,7 +349,7 @@ app.add_middleware(
 @app.get("/")
 def home():
     return {
-        "message": "Server working as expected",
+        "message": "Server working perfectly on Render",
         "version": "1.12.332"
     }
 
@@ -444,12 +385,8 @@ async def chat_endpoint(req: ChatRequest, request: Request):
         else:
             reply = engine.dynamic_route_response(req.message, req.mode)
             
-        # ==============================
-        # MEMORY SYSTEM
-        # ==============================
         memory_info = None
         try:
-            # Wrapped in try/except so if Supabase memory fails, the chat still works
             memory = extract_memory(req.message)
 
             if memory:
@@ -483,4 +420,6 @@ async def chat_endpoint(req: ChatRequest, request: Request):
         )
  
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    # REQUIRED FOR RENDER: Dynamically fetch the port assigned by Render's environment
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
