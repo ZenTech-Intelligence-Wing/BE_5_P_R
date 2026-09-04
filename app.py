@@ -1,7 +1,7 @@
 # ==========================================
 # PURE LOGO AI-PROOF WATERMARK SYSTEM v8.1
 # ANTI-WATERMARK REMOVER PROTECTION
-# RENDER.COM MEMORY OPTIMIZED VERSION
+# RENDER.COM MEMORY & PORT TIMEOUT OPTIMIZED
 # ==========================================
 
 import json
@@ -16,20 +16,12 @@ import requests
 import random
 import struct
 
-# LAZY LOADING: We do NOT import cv2, numpy, or PIL globally.
-# This prevents Render from crashing on the 512MB RAM limit during startup.
-
 from google import genai 
 from google.genai import types
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-
-# Memory system imports
-from memory.extraction import extract_memory
-from memory.embedding import generate_embedding
-from memory.storage import save_memory
 
 def b64_decode(encoded_str: str) -> str:
     try:
@@ -40,7 +32,7 @@ def b64_decode(encoded_str: str) -> str:
 # NEW GOOGLE API KEY
 NEW_GOOGLE_KEY = "AQ.Ab8RN6KME25Zm5HNS2c0vGIPtGJayqVOZqKX09b6LJm5okDUHg"
 
-#================= AI ENGINES (FULL 40+ LIST) =================
+#================= AI ENGINES =================
 AI_ENGINES_POOL = [
     {"name": "NVIDIA Nemotron 70B", "provider": "nvidia", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "model": "nvidia/llama-3.1-nemotron-70b-instruct", "apiKey": "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", "supportsVision": False},
     {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
@@ -87,8 +79,9 @@ AI_ENGINES_POOL = [
 WATERMARK_LOGO_PATH = "watermark.jpeg"
 WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 
+
 # ==========================================
-# WATERMARK CLASSES (Lazy Loaded for Render)
+# WATERMARK CLASSES (Lazy Loaded)
 # ==========================================
 
 class HighlyVisibleLogoOverlay:
@@ -154,7 +147,7 @@ class TextureBlendedLogo:
 class AdversarialAntiRemoval:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    def apply(self, img: np.ndarray) -> np.ndarray:
+    def apply(self, img):
         import numpy as np
         import cv2
         result = img.astype(np.float32)
@@ -172,7 +165,7 @@ class AdversarialAntiRemoval:
 class AntiRemovalNoisePattern:
     def __init__(self, secret_key: str):
         self.secret_key = secret_key
-    def apply(self, img: np.ndarray) -> np.ndarray:
+    def apply(self, img):
         import numpy as np
         result = img.astype(np.float32)
         h, w = img.shape[:2]
@@ -195,28 +188,21 @@ class LogoWatermarkEngine:
         import numpy as np
 
         if is_pro_user:
-            print("[PRO USER] Watermark bypass enabled - Returning clean image")
             img = Image.open(BytesIO(image_bytes)).convert("RGB")
             out = BytesIO()
             img.save(out, format="JPEG", quality=95)
             return out.getvalue()
         
-        # Free users: Apply Watermarks
         img = Image.open(BytesIO(image_bytes)).convert("RGB")
-        print("[WM] Applying highly visible overlay...")
         img = self.visible_overlay.apply(img)
-        print("[WM] Applying texture-blended logo...")
         img = self.texture_blended.apply(img)
         
         img_np = np.array(img)
-        print("[WM] Applying anti-removal noise...")
         img_np = self.anti_noise.apply(img_np)
-        print("[WM] Applying adversarial perturbations...")
         img_np = self.adversarial.apply(img_np)
         img = Image.fromarray(img_np)
 
         out = BytesIO()
-        # Fallback format handling
         save_fmt = output_format if output_format.upper() in ["JPEG", "JPG", "PNG", "GIF", "WEBP"] else "JPEG"
         
         if enable_anti_upload and save_fmt == "GIF":
@@ -268,7 +254,6 @@ class ZenTechBackendEngine():
                     )
                     img_base64 = base64.b64encode(watermarked_bytes).decode("utf-8")
                 except Exception as e:
-                    print(f"[ZIMAGE WARN] Post-gen failed: {e}")
                     img_base64 = base64.b64encode(response.content).decode("utf-8")
 
                 mime = "image/jpeg" if is_pro_user else {"AVIF": "image/avif", "GIF": "image/gif", "PNG": "image/png", "WEBP": "image/webp", "JPEG": "image/jpeg", "JPG": "image/jpeg"}.get(output_format.upper(), "image/gif")
@@ -284,10 +269,8 @@ class ZenTechBackendEngine():
         if not user_input.strip(): 
             return "Please enter a question or prompt."
 
-        # Grab the requested model
         selected_engine = next((e for e in AI_ENGINES_POOL if e["name"].lower() == target_mode.lower()), None)
         
-        # Build seamless fallback chain (requested model first, then all 40 backups)
         fallback_chain = []
         if selected_engine:
             fallback_chain.append(selected_engine) 
@@ -295,7 +278,6 @@ class ZenTechBackendEngine():
         fallback_chain.extend([e for e in AI_ENGINES_POOL if e != selected_engine])
 
         for engine in fallback_chain:
-            print(f"[AI ROUTER] Routing request to: {engine['name']} ({engine['provider']})")
             try:
                 if engine["provider"] == "google":
                     api_key = engine.get("apiKey", self.gemini_api_key)
@@ -322,18 +304,16 @@ class ZenTechBackendEngine():
                         data = response.json()
                         return data["choices"][0]["message"]["content"] 
                     else:
-                        print(f"[Provider Error] {engine['name']} HTTP {response.status_code}. Failing over instantly...")
                         continue 
 
             except Exception as e:
-                print(f"[Connection Error] {engine['name']} failed: {str(e)}. Failing over instantly...")
                 continue 
 
         return "[System Error]: All 41 AI engines in the fallback pool are currently unavailable or rate limited."
 
 
 # ==========================================
-# FASTAPI SERVER
+# FASTAPI SERVER - RENDER STARTUP OPTIMIZED
 # ==========================================
 
 app = FastAPI(title="ZenTech Backend API - AI Routing & Render Optimized")
@@ -354,7 +334,6 @@ def home():
     }
 
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or NEW_GOOGLE_KEY
-engine = ZenTechBackendEngine(gemini_api_key=GEMINI_KEY)
 
 class ChatRequest(BaseModel):
     message: str
@@ -363,6 +342,15 @@ class ChatRequest(BaseModel):
     enable_anti_upload: bool = True  
     is_pro_user: bool = False  
     user_id : str | None = None 
+
+# LAZY LOAD THE ENGINE
+global_engine = None
+
+def get_engine():
+    global global_engine
+    if global_engine is None:
+        global_engine = ZenTechBackendEngine(gemini_api_key=GEMINI_KEY)
+    return global_engine
 
 @app.post("/chat")
 async def chat_endpoint(req: ChatRequest, request: Request):
@@ -375,18 +363,25 @@ async def chat_endpoint(req: ChatRequest, request: Request):
                 detail="Authorization token missing"
             )
 
+        active_engine = get_engine()
+
         if req.mode == "Zimage Generation":
-            reply = engine.generate_image(
+            reply = active_engine.generate_image(
                 req.message, 
                 output_format=req.output_format,
                 enable_anti_upload=req.enable_anti_upload,
                 is_pro_user=req.is_pro_user 
             )
         else:
-            reply = engine.dynamic_route_response(req.message, req.mode)
+            reply = active_engine.dynamic_route_response(req.message, req.mode)
             
         memory_info = None
         try:
+            # LAZY LOAD MEMORY MODULES
+            from memory.extraction import extract_memory
+            from memory.embedding import generate_embedding
+            from memory.storage import save_memory
+
             memory = extract_memory(req.message)
 
             if memory:
@@ -404,7 +399,7 @@ async def chat_endpoint(req: ChatRequest, request: Request):
                     "memory_type": memory.get("memory_type", "text")
                 }
         except Exception as mem_err:
-            print(f"[MEMORY WARN] Failed to save memory context: {mem_err}")
+            pass
 
         return {
             "response": reply,
@@ -418,8 +413,3 @@ async def chat_endpoint(req: ChatRequest, request: Request):
             status_code=500,
             detail=str(e)
         )
- 
-if __name__ == "__main__":
-    # REQUIRED FOR RENDER: Dynamically fetch the port assigned by Render's environment
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run("app:app", host="0.0.0.0", port=port)
