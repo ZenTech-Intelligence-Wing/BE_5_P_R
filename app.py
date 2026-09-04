@@ -32,16 +32,13 @@ def b64_decode(encoded_str: str) -> str:
 # NEW GOOGLE API KEY
 NEW_GOOGLE_KEY = "AQ.Ab8RN6KME25Zm5HNS2c0vGIPtGJayqVOZqKX09b6LJm5okDUHg"
 
-#================= AI ENGINES (GROQ FIRST FOR LIGHTNING FAST TEXT SPEED) =================
+#================= AI ENGINES =================
 AI_ENGINES_POOL = [
-    # ⚡ LIGHTNING FAST PRIMARY TEXT ENGINES (Put Groq first to bypass slow loops)
     {"name": "Groq Llama 3.3 70B", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "llama-3.3-70b-versatile", "apiKey": "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", "supportsVision": False},
     {"name": "Groq Llama 4 Scout", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "meta-llama/llama-4-scout-17b-16e-instruct", "apiKey": "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", "supportsVision": True},
     {"name": "Groq Llama 4 Maverick", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "meta-llama/llama-4-maverick-17b-128e-instruct", "apiKey": "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", "supportsVision": True},
     {"name": "Groq DeepSeek R1", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "deepseek-r1-distill-llama-70b", "apiKey": "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", "supportsVision": False},
     {"name": "Groq Mixtral 8x7B", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "mixtral-8x7b-32768", "apiKey": "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", "supportsVision": False},
-    
-    # --- GOOGLE ENGINES ---
     {"name": "Gemini 1.5 Flash", "provider": "google", "model": "gemini-1.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "Gemini 1.5 Pro", "provider": "google", "model": "gemini-1.5-pro", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "Gemini 3.1 Pro", "provider": "google", "model": "gemini-3.1-pro-preview", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
@@ -53,8 +50,6 @@ AI_ENGINES_POOL = [
     {"name": "Gemini 2.5 Flash", "provider": "google", "model": "gemini-2.5-flash", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "Gemini 1.5 Flash-8B", "provider": "google", "model": "gemini-1.5-flash-8b", "apiKey": NEW_GOOGLE_KEY, "supportsVision": True},
     {"name": "Imagen 4 Ultra", "provider": "google", "model": "imagen-4.0-ultra-generate-001", "apiKey": NEW_GOOGLE_KEY, "supportsVision": False, "isImageModel": True},
-
-    # --- NVIDIA & OPENAI ENGINES ---
     {"name": "NVIDIA Nemotron 70B", "provider": "nvidia", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "model": "nvidia/llama-3.1-nemotron-70b-instruct", "apiKey": "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", "supportsVision": False},
     {"name": "GPT-5.4 Thinking", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.4-thinking", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
     {"name": "GPT-5.4 Pro", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5.4-pro", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
@@ -64,8 +59,6 @@ AI_ENGINES_POOL = [
     {"name": "GPT Image 1.5", "provider": "openai", "url": "https://api.openai.com/v1/images/generations", "model": "gpt-image-1.5", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": False, "isImageModel": True},
     {"name": "GPT-5 mini", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5-mini", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
     {"name": "GPT-5 nano", "provider": "openai", "url": "https://api.openai.com/v1/chat/completions", "model": "gpt-5-nano", "apiKey": b64_decode("c2stcHJvai1jeXpuRVNadDlHbzE0ZzdBeXN5Wm42bVowOFR3RjZ3S3VTTDNiZWlUOEd1ZWdUVkt4amFfOE5VUklXMnlIbGhOdHppZEhzYnljLVQzQmxia0ZKZ3ZuN1JUcWVZbmVGUG9iR213MnA1aG1nRkczcnpOZWJuWE9KZVVOQ09aLUdFSHk2cW9ibW5BTVNoSzlqWVM3V2dlZmhFNmlHUUE="), "supportsVision": True},
-
-    # --- OPENROUTER & OTHERS ---
     {"name": "Groq Llama Guard 4", "provider": "groq", "url": "https://api.groq.com/openai/v1/chat/completions", "model": "meta-llama/llama-guard-4-12b", "apiKey": "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", "supportsVision": False},
     {"name": "OpenRouter Auto", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "openrouter/auto", "apiKey": "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", "supportsVision": True},
     {"name": "Llama 3.3 70B Free", "provider": "openrouter", "url": "https://openrouter.ai/api/v1/chat/completions", "model": "meta-llama/llama-3.3-70b-instruct:free", "apiKey": "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", "supportsVision": False},
@@ -86,9 +79,8 @@ AI_ENGINES_POOL = [
 WATERMARK_LOGO_PATH = "watermark.jpeg"
 WATERMARK_SECRET_KEY = "ZenTech_LogoOnly_AIProof_2026"
 
-
 # ==========================================
-# WATERMARK CLASSES (Lazy Loaded for Render)
+# WATERMARK CLASSES
 # ==========================================
 
 class HighlyVisibleLogoOverlay:
@@ -217,7 +209,7 @@ class LogoWatermarkEngine:
         return out.getvalue()
 
 # ==========================================
-# CORE ENGINE - FAST FAIL-FAST FAILOVER (<5s)
+# CORE ENGINE
 # ==========================================
 
 class ZenTechBackendEngine():
@@ -268,11 +260,9 @@ class ZenTechBackendEngine():
         except Exception as e:
             return f"**[IMAGE ERROR]** Connection failed. Details: {str(e)}"
 
-  def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
+    def dynamic_route_response(self, user_input: str, target_mode: str) -> str:
         if not user_input.strip(): 
             return "Please enter a question or prompt."
-
-        print(f"\n[ROUTER] Starting request for mode: {target_mode}")
 
         selected_engine = next((e for e in AI_ENGINES_POOL if e["name"].lower() == target_mode.lower()), None)
         
@@ -283,61 +273,28 @@ class ZenTechBackendEngine():
         fallback_chain.extend([e for e in AI_ENGINES_POOL if e != selected_engine])
 
         for engine in fallback_chain:
-            engine_name = engine.get('name', 'Unknown')
-            provider = engine.get("provider")
-            print(f"[ROUTER] Trying engine: {engine_name} ({provider})")
-            
             try:
-                # 1. Skip invalid placeholders instantly
                 api_key = engine.get("apiKey", "")
                 if not api_key or "YOUR_" in str(api_key):
-                    print(f"[ROUTER] Skipping {engine_name}: Invalid API Key placeholder.")
                     continue
 
-                # 2. Google Provider Logic
-                if provider == "google":
-                    try:
-                        print(f"[ROUTER] Initializing Google Client for {engine_name}...")
-                        key_to_use = api_key if api_key else self.gemini_api_key
-                        
-                        # Simplified client initialization
-                        client = genai.Client(api_key=key_to_use)
-                        chat = client.chats.create(model=engine.get("model", "gemini-1.5-flash"))
-                        
-                        print(f"[ROUTER] Sending message to {engine_name}...")
-                        response = chat.send_message(user_input)
-                        
-                        if response and response.text:
-                            print(f"[ROUTER] SUCCESS! {engine_name} responded.")
-                            return response.text
-                        else:
-                            print(f"[ROUTER] Warning: {engine_name} returned empty text.")
-                            
-                    except Exception as google_err:
-                        print(f"[ROUTER FAIL] Google specifically failed on {engine_name}: {str(google_err)}")
-                        continue # Jump to fallback
-
-                # 3. Third-Party Provider Logic (Groq, OpenAI, OpenRouter)
+                if engine["provider"] == "google":
+                    client = genai.Client(api_key=api_key)
+                    config = types.GenerateContentConfig(system_instruction=self.system_instruction, safety_settings=self.safety_settings)
+                    chat = client.chats.create(model=engine["model"], config=config)
+                    response = chat.send_message(user_input)
+                    if response and response.text:
+                        return response.text
+                
                 else:
                     provider_url = engine.get("url")
                     model_name = engine.get("model")
                     
                     if not provider_url:
-                        print(f"[ROUTER] Skipping {engine_name}: No URL provided.")
                         continue 
 
-                    print(f"[ROUTER] Making HTTP request to {engine_name} at {provider_url}...")
-                    headers = {
-                        "Authorization": f"Bearer {api_key}", 
-                        "Content-Type": "application/json"
-                    }
-                    payload = {
-                        "model": model_name, 
-                        "messages": [
-                            {"role": "system", "content": self.system_instruction}, 
-                            {"role": "user", "content": user_input}
-                        ]
-                    }
+                    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                    payload = {"model": model_name, "messages": [{"role": "system", "content": self.system_instruction}, {"role": "user", "content": user_input}]}
                     
                     response = requests.post(provider_url, headers=headers, json=payload, timeout=5)
                     
@@ -345,28 +302,20 @@ class ZenTechBackendEngine():
                         data = response.json()
                         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
                         if content:
-                            print(f"[ROUTER] SUCCESS! {engine_name} responded via HTTP.")
                             return content
-                        else:
-                            print(f"[ROUTER] Warning: {engine_name} returned empty JSON content.")
-                    else:
-                        print(f"[ROUTER FAIL] {engine_name} HTTP {response.status_code}: {response.text}")
-                        continue
 
             except Exception as e:
-                print(f"[ROUTER CRASH] Unhandled exception on {engine_name}: {str(e)}")
+                print(f"[ROUTER FAIL] Engine {engine.get('name')} failed: {e}")
                 continue 
 
-        print("[ROUTER FATAL] Loop finished. No engines responded.")
         return "I'm currently experiencing high traffic across all AI channels. Please try sending your message again."
-      
 
 
 # ==========================================
-# FASTAPI SERVER - RENDER OPTIMIZED
+# FASTAPI SERVER
 # ==========================================
 
-app = FastAPI(title="ZenTech Backend API - Lightning Fast AI Routing")
+app = FastAPI(title="ZenTech Backend API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -393,7 +342,6 @@ class ChatRequest(BaseModel):
     is_pro_user: bool = False  
     user_id : str | None = None 
 
-# LAZY LOAD THE ENGINE
 global_engine = None
 
 def get_engine():
@@ -448,7 +396,7 @@ async def chat_endpoint(req: ChatRequest, request: Request):
                     "memory_type": memory.get("memory_type", "text")
                 }
         except Exception as mem_err:
-            print(f"[MEMORY WARN] Failed to save memory context: {mem_err}")
+            pass
 
         return {
             "response": reply,
@@ -464,6 +412,5 @@ async def chat_endpoint(req: ChatRequest, request: Request):
         )
 
 if __name__ == "__main__":
-    # REQUIRED FOR RENDER: Dynamically fetch the port assigned by Render's environment
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("app:app", host="0.0.0.0", port=port)
